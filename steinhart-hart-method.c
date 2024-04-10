@@ -7,12 +7,12 @@ int s3 = 11;
 //Mux in "SIG" pin
 int pin_adc0 = 0;
 
-int Vo;
-int R1 = 10000;
-int logR2, R2, T;
+float Vo;
+float R1 = 10000;
+float logR2, R2, T;
 // int a1 = 1.009249522e-03, b1 = 2.378405444e-04, c1 = 2.019202697e-07;
 
-double thermistor_weights[][3] = {
+float thermistor_weights[][3] = {
   {0.0008434273696  , 0.0002436094515 , 0.0000003223882922},
   {0.001091204241   , 0.0001997684378 , 0.0000005369500176},
   {0  , 0 , 0},
@@ -45,11 +45,11 @@ void setup(){
 void loop(){
 
   //Loop through and read all 16 values
-  for(int i = 0; i < 11; i ++){
+  for(int i = 0; i < 12; i ++){
     Serial.print(i);
     Serial.print(",");
     Serial.print(readMux(i));
-    Serial.print(",");
+    Serial.print(", ");
     delay(500);
   }
   // Print last value without a comma and start a new line
@@ -88,9 +88,9 @@ int readMux(int channel){
     digitalWrite(controlPin[i], muxChannel[channel][i]);
   }
 
-  // Method 2 maybe the best?
+  // === Calculate ===
   Vo = analogRead(pin_adc0);
-  R2 = thermistor_weights[channel][1] * (1023.0 / Vo - 1.0);
+  R2 = R1 * (1023.0 / Vo - 1.0); //pull down
   logR2 = log(R2);
   T = (1.0 / (thermistor_weights[channel][0] + thermistor_weights[channel][1]*logR2 + thermistor_weights[channel][2]*logR2*logR2*logR2));
   T = T - 273.15;
