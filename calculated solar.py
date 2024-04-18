@@ -9,7 +9,11 @@ from datetime import datetime
 from heat_sink_design import heat_sink_design
  
 # reading the CSV file
-NREL_file = '1951980_39.74_-104.99_2019.csv'
+NREL_files = {'denver_1947888_39.74_-105.03_2022_localTime.csv',
+             'phoenix_1309015_33.44_-112.05_2022_localTime.csv',
+             'atlanta_3894477_33.80_-84.39_2022_localTime.csv',
+             'sahara_487671_22.77_5.54_2019_localTime.csv',
+             'brussels_454991_50.85_4.34_2019_localTime.csv'}
 
 # ---- Inputs ---
 # http://www.solardesigntool.com/components/module-panel-solar/Canadian-Solar/1327/CS6P-250M/specification-data-sheet.html
@@ -41,27 +45,33 @@ room_temp = 25 # Celcius
 # === Import NREL data ===
 # ========================
 
-NREL_datetime = []
-NREL_DNI =[]
-NREL_temp = []
+nrel_dict = {'name':'','dni':[],'temp':[]}
 
-with open(NREL_file, newline='') as csvNREL:
-    NREL_reader = csv.reader(csvNREL, delimiter=' ', quotechar='|')
-    for row in NREL_reader:
+for i_csv in NREL_files:
 
-        # Start of data
-        if row[0][0:2] == '20':
-            split_row = row[0].split(',')
+    NREL_datetime = []
+    NREL_DNI =[]
+    NREL_temp = []
 
-            year = int(split_row[0])
-            month = int(split_row[1])
-            day = int(split_row[2])
-            hour = int(split_row[3])
-            minute = int(split_row[4])
-            NREL_datetime.append(datetime(year, month, day, hour, minute))
+    with open(i_csv, newline='') as csvNREL:
+        NREL_reader = csv.reader(csvNREL, delimiter=' ', quotechar='|')
+        for row in NREL_reader:
 
-            NREL_DNI.append(int(split_row[5]))
-            NREL_temp.append(float(split_row[6])) # Celcius
+            # Start of data
+            if row[0][0:2] == '20':
+                split_row = row[0].split(',')
+
+                year = int(split_row[0])
+                month = int(split_row[1])
+                day = int(split_row[2])
+                hour = int(split_row[3])
+                minute = int(split_row[4])
+                NREL_datetime.append(datetime(year, month, day, hour, minute))
+
+                NREL_DNI.append(int(split_row[5]))
+                NREL_temp.append(float(split_row[6])) # Celcius
+
+        
 
 # print(min(NREL_temp) , max(NREL_temp))
 
