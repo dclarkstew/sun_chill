@@ -4,7 +4,7 @@ from scipy import integrate
 # from datetime import datetime
 
 filename = 'test_20240414.txt'
-price_per_kWh = 0.23 # dollars
+price_per_kWh = 0.16 # dollars
 print(price_per_kWh)
 
 def read_temp_data(filename):
@@ -37,39 +37,51 @@ def read_temp_data(filename):
         for idx_temp,i_temp in enumerate(split_2):
             split_2[idx_temp] = i_temp.replace(' ','')
             i_temp = split_2[idx_temp]
+            
 
             if i_temp == '0' and idx_temp != 5:
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['nyc_front'].append( temp_value )
             elif i_temp == '1':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['nyc_back'].append( temp_value )
             elif i_temp == '3':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['venice_front'].append( temp_value )
             elif i_temp == '4':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['venice_back'].append( temp_value )
             elif i_temp == '5':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['wichita_front'].append( temp_value )
             elif i_temp == '6':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['wichita_back'].append( temp_value )
             elif i_temp == '7':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['orvieto_front'].append( temp_value )
             elif i_temp == '8':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['orvieto_back'].append( temp_value )
             elif i_temp == '9':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['control_front'].append( temp_value )
             elif i_temp == '10':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['control_back'].append( temp_value )
             elif i_temp == '11':
                 temp_value = int(split_2[idx_temp+1]) / 100
+                temp_value = (temp_value - 32) * 5/9
                 data_dict['ambient'].append( temp_value )
 
         g=0
@@ -84,7 +96,7 @@ def read_temp_data(filename):
     # === Plot ===
     fig, ax1 = plt.subplots()
 
-    plot_front = False
+    plot_front = True
     ax1.plot(data_dict['time'],data_dict['ambient'], color='black', label='ambient')
     if plot_front:
         ax1.plot(data_dict['time'],data_dict['nyc_front'], color='blue', label='nyc_front') # 0
@@ -94,7 +106,7 @@ def read_temp_data(filename):
         # ax1.plot(data_dict['time'],data_dict['control_front'], color='peru', label='control_front',linewidth=7.0)
         plt.title("Front side of panel temperatures")
 
-    plot_back = True
+    plot_back = False
     if plot_back:
         ax1.plot(data_dict['time'],data_dict['nyc_back'], color='blue',linestyle = 'dashed', label='nyc_back')
         ax1.plot(data_dict['time'],data_dict['venice_back'], color='r',linestyle = 'dashed', label='venice_back')
