@@ -12,22 +12,19 @@ from datetime import datetime
 NREL_files = {'denver_1947888_39.74_-105.03_2022_localTime.csv',
              'phoenix_1309015_33.44_-112.05_2022_localTime.csv',
              'atlanta_3894477_33.80_-84.39_2022_localTime.csv',
-             'sahara_487671_22.77_5.54_2019_localTime.csv',
+             'sahara_487671_22.77_5.54_2019_localTime.csv',         # Tamanrasset
              'brussels_454991_50.85_4.34_2019_localTime.csv'}
 
 # === Solar Panel Inputs ===
-# http://www.solardesigntool.com/components/module-panel-solar/Canadian-Solar/1327/CS6P-250M/specification-data-sheet.html
+# https://es-media-prod.s3.amazonaws.com/media/components/panels/spec-sheets/HyundaiEnergySolutions_HiA-SXXXHG_M2_300_315W_xSe5w2v.pdf
 sp_area_sqft = (5.5*3.5) # sqft
 sqft_to_m2 = 0.0928790337119164
-sp_area_m2 = sp_area_sqft * sqft_to_m2
-SP_area = 17.334375 # Sqft
-SP_area = 1.61 # m^2
+sp_area_m2 = 0.992 * 1.675 # (39.06"x65.94")
 SP_power_rating = 305 # Watts
-SP_efficiency = 0.1554 # %
-eff_loss_per_degree = 0.045 # %
-mass = 20000 # g
+SP_efficiency = 0.184 # %
+eff_loss_per_degree = 0.0306 # %
 
-price_per_kWh = 0.23 # dollars
+price_per_kWh = 0.16 # dollars
 
 dissapation_delta = 8.45 # celcius
 num_bars = 10
@@ -66,6 +63,9 @@ for idx_file,i_csv in enumerate(NREL_files):
     i_power_ideal = []
     i_power_heated = []
 
+    flag_found_sunrise_idx = False
+    sunrise_idx = []
+
     filename_split = i_csv.split('_')
     filename_location = filename_split[0]
 
@@ -74,7 +74,7 @@ for idx_file,i_csv in enumerate(NREL_files):
 
     with open(i_csv, newline='') as csvNREL:
         NREL_reader = csv.reader(csvNREL, delimiter=' ', quotechar='|')
-        for row in NREL_reader:
+        for row_idx,row in enumerate(NREL_reader):
 
             # Start of data
             if row[0][0:2] == '20':
@@ -97,8 +97,13 @@ for idx_file,i_csv in enumerate(NREL_files):
                     nrel_time_in_sun.append(datetime(year, month, day, hour, minute))
                     nrel_dni_in_sun.append(i_dni)
 
+                    # --- Find sun rise ---
+                    if flag_found_sunrise_idx == False:
+                        sunrise_idx = row_idx
+                        sunrise_dt = datetime(year, month, day, hour, minute)                        
+
                     # --- Pretend this is the temp of the panel not the air ---
-                    temp_above_roomtemp = i_temp - room_temp
+                    temp_above_roomtemp = i_temp - room_temp +10
                     if temp_above_roomtemp < 0:
                         efficiency_loss = 0
                     else:
@@ -125,6 +130,7 @@ for idx_file,i_csv in enumerate(NREL_files):
                             'power_ideal': i_power_ideal,
                             'power_heated':i_power_heated } )
         
+# === Sum data for power loss from temperature ===
 for i_loc in nrel_dict:
 
     # --- Ideal ---
@@ -164,16 +170,23 @@ for i_loc in nrel_dict:
 
     # kWhr_saved = (hs_power_sum - calc_power_sum)/1000 # kW-hr
 
-    money_saved = money_per_year_ideal - money_per_year_heated
+    money_lost = money_per_year_ideal - money_per_year_heated
 
-    ratio = money_saved / money_per_year_ideal
+    percent_lost = money_lost / money_per_year_ideal * 100
+
+    # nrel_dict.append( {
+    #     'ideal gen':  money_per_year_ideal,
+    #     'actual gen': money_per_year_heated,
+    #     'money lost': money_lost,
+    #     'percent lost': percent_lost
+    # })
 
     print('*'*50)
     print(i_loc['name'])
     print('Ideal generation: $',round(money_per_year_ideal,2))
     print('Actual generation: $',round(money_per_year_heated,2))
-    print('Money lost $',round(money_saved,2))
-    print('Ratio:',round(ratio,2),'\n')
+    print('Money lost $',round(money_lost,2))
+    print('% lost:',round(percent_lost,2),'%\n')
 
 
 # === Plot ===
