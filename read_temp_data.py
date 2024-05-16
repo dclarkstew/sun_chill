@@ -95,24 +95,41 @@ def read_temp_data(filename):
     # --- Temp compare ---
     temp_saved_list = []
     power_saved_list = []
-    money_saved_list = []
+    percent_saved_list = []
     money_saved_dict = {}
     for key,comare_data in data_dict.items():
         if 'front' in key and 'control' not in key:
             output1, recovered_kwh, recovered_temp = money_saved(data_dict['ambient'],comare_data,data_dict['seconds'])
             money_saved_dict[key] = round(output1,3)
-            money_saved_list.append(round(output1,2))
+            percent_saved_list.append(round(output1,2))
             power_saved_list.append(round(recovered_kwh,2))
             temp_saved_list.append(round(recovered_temp,2))
 
     
     # --- Sort lists ascending ---
-    list_reorder = list(np.argsort(money_saved_list))
+    list_reorder = list(np.argsort(percent_saved_list))
     list_reorder.reverse()
 
-    money_saved_list = [x for _,x in sorted(zip(list_reorder,money_saved_list))]
+    percent_saved_list = [x for _,x in sorted(zip(list_reorder,percent_saved_list))]
     power_saved_list = [x for _,x in sorted(zip(list_reorder,power_saved_list))]
     temp_saved_list = [x for _,x in sorted(zip(list_reorder,temp_saved_list))]
+
+    money_saved_items = []
+    for key,value in money_saved_dict.items():
+        if key == 'nyc_front':
+            key = '1/2" x 1/2" x 3" bars'
+        if key == 'venice_front':
+            key = '1/8" x 3" fins'
+        if key == 'wichita_front':
+            key = '1/8" flat plate'
+        if key == 'behive_front':
+            key = '1/4" Honeycomb\nGrid Core'
+        money_saved_items.append(key)
+    ordered_design_names = [x for _,x in sorted(zip(list_reorder,money_saved_items))]
+
+    return ordered_design_names, percent_saved_list
+
+def plot_experimental_data(ordered_design_names, percent_saved_list,data_dict,power_saved_list,temp_saved_list):
 
     # === Plot ===
     # fig, ax1 = plt.subplots()
@@ -141,68 +158,56 @@ def read_temp_data(filename):
     # g=0
 
     # === Plot ===
-    fig, ax2  = plt.subplots()
+    if ~False:
+        fig, ax2  = plt.subplots()
 
-    # --- Font ---
-    SMALL_SIZE = 8
-    MEDIUM_SIZE = 10
-    BIGGER_SIZE = 12
+        # --- Font ---
+        SMALL_SIZE = 8
+        MEDIUM_SIZE = 10
+        BIGGER_SIZE = 12
 
-    plt.rc('font', size=12)          # controls default text sizes
-    plt.rc('axes', titlesize=40)     # fontsize of the axes title
-    plt.rc('axes', labelsize=40)    # fontsize of the x and y labels
-    plt.rc('xtick', labelsize=40)    # fontsize of the tick labels
-    plt.rc('ytick', labelsize=40)    # fontsize of the tick labels
-    plt.rc('legend', fontsize=40)    # legend fontsize
-    plt.rc('figure', titlesize=20)  # fontsize of the figure title
-    
-    bar_legend_name = ['red', 'blue', 'green', 'orange']
-    bar_colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:orange']
+        plt.rc('font', size=12)          # controls default text sizes
+        plt.rc('axes', titlesize=40)     # fontsize of the axes title
+        plt.rc('axes', labelsize=40)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=40)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=40)    # fontsize of the tick labels
+        plt.rc('legend', fontsize=40)    # legend fontsize
+        plt.rc('figure', titlesize=20)  # fontsize of the figure title
+        
+        bar_legend_name = ['red', 'blue', 'green', 'orange']
+        bar_colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:orange']
 
-    money_saved_items = []
-    for key,value in money_saved_dict.items():
-        if key == 'nyc_front':
-            key = '1/2" x 1/2" x 3" bars'
-        if key == 'venice_front':
-            key = '1/8" x 3" fins'
-        if key == 'wichita_front':
-            key = '1/8" flat plate'
-        if key == 'behive_front':
-            key = '1/4" Honeycomb\nGrid Core'
-        money_saved_items.append(key)
-    money_saved_items = [x for _,x in sorted(zip(list_reorder,money_saved_items))]
+        bars = ax2.bar(ordered_design_names, percent_saved_list, color=bar_colors, label=ordered_design_names)
 
-    bars = ax2.bar(money_saved_items, money_saved_list, color=bar_colors, label=money_saved_items)
+        ax2.set_ylabel('% gained', fontsize=20, fontweight='bold')
+        
+        # --- Figure Title ---
+        time_start = data_dict['time'][0]
+        time_end = data_dict['time'][-1]
+        ax2.set_title('Percent efficiency gained by design\n('+ str(time_start) + ' to ' + str(time_end) + ')',fontsize=28,fontweight='bold') 
 
-    ax2.set_ylabel('% gained', fontsize=20, fontweight='bold')
-    
-    # --- Figure Title ---
-    time_start = data_dict['time'][0]
-    time_end = data_dict['time'][-1]
-    ax2.set_title('Percent efficiency gained by design\n('+ str(time_start) + ' to ' + str(time_end) + ')',fontsize=28,fontweight='bold') 
+        # ax2.legend(title='Design')
 
-    # ax2.legend(title='Design')
+        ax2.grid(visible=True, which='major', axis='y',color='green', linestyle='-', linewidth = 1.5)
+        ax2.grid(visible=True, which='minor', axis='y',color='lime', linestyle='--')
+        ax2.set_axisbelow(True)
 
-    ax2.grid(visible=True, which='major', axis='y',color='green', linestyle='-', linewidth = 1.5)
-    ax2.grid(visible=True, which='minor', axis='y',color='lime', linestyle='--')
-    ax2.set_axisbelow(True)
+        ax2.tick_params(axis='y', labelsize=20)
+        ax2.yaxis.set_minor_locator(tck.AutoMinorLocator())
 
-    ax2.tick_params(axis='y', labelsize=20)
-    ax2.yaxis.set_minor_locator(tck.AutoMinorLocator())
+        ax2.tick_params(axis='x', labelsize=20)
+        plt.xticks(ordered_design_names, weight = 'bold')
 
-    ax2.tick_params(axis='x', labelsize=20)
-    plt.xticks(money_saved_items, weight = 'bold')
-
-    # --- Add column values ---
-    for i, v in enumerate(money_saved_list):
-        ax2.text(i-.38, v-.4, str(v)+'%\n' + str(power_saved_list[i]) + ' kWh\n' + str(temp_saved_list[i]) + ' °C', 
-                 color='black', 
-                #  fontweight='bold', 
-                 verticalalignment='center',
-                 fontsize=24)
-    
-    plt.show()
-    g=0
+        # --- Add column values ---
+        for i, v in enumerate(percent_saved_list):
+            ax2.text(i-.38, v-.4, str(v)+'%\n' + str(power_saved_list[i]) + ' kWh\n' + str(temp_saved_list[i]) + ' °C', 
+                    color='black', 
+                    #  fontweight='bold', 
+                    verticalalignment='center',
+                    fontsize=24)
+        
+        plt.show()
+        g=0
 
 # === Sub functions =====
 
@@ -235,5 +240,8 @@ def money_saved(ambient_data,compare_data,seconds_data):
     return recovered_percent, recovered_kwh, recovered_temp
     # return in_dollars
 
+def main():
+    read_temp_data(filename)
 
-read_temp_data(filename)
+if __name__ == "__main__":
+    main()
