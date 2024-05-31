@@ -12,7 +12,7 @@ import read_temp_data as read_temp_data # type: ignore
  
 def main():
     # reading the CSV file
-    nrel_directory = r'C:\Users\dclar\Documents\Solar Panels\analysis\theoretical\\'
+    nrel_directory = r'C:\Users\dclar\Documents\Solar Panels\python_analysis\theoretical\\'
     NREL_files = ['denver_1947888_39.74_-105.03_2022_localTime.csv',
                 'phoenix_1309015_33.44_-112.05_2022_localTime.csv',
                 'atlanta_3894477_33.80_-84.39_2022_localTime.csv',
@@ -180,7 +180,16 @@ def main():
     # --- Rearrange dict ---
     heatsink_type_location_dict = {key:{k:money_sum_dict[k][key] for k in money_sum_dict if key in money_sum_dict[k]} for key in ordered_design_names}
 
-    plot2_wtf(money_sum_dict)
+    # --- Difference from ambient dict ---
+    money_diff_dict = {}
+    for key,i_location_data in money_sum_dict.items():
+        ambient_generation = money_sum_dict[key]['ambient']
+
+        money_diff_dict[key] = {}
+        for key2,i_design_value in i_location_data.items():
+            money_diff_dict[key][key2] = round(i_design_value - ambient_generation,2)
+
+    plot2_wtf(money_diff_dict)
     gsd=0
 
 def plot2_wtf(money_sum_dict):
@@ -199,6 +208,9 @@ def plot2_wtf(money_sum_dict):
 
             val_rounded = round(i_design_value,2)
 
+            if val_rounded == 0:
+                continue
+
             plot_dict[key]['x_vals'].append(str(val_rounded))
             plot_dict[key]['y_vals'].append( val_rounded )
 
@@ -209,6 +221,8 @@ def plot2_wtf(money_sum_dict):
         y_vals = plot_dict[i_loc]['y_vals']
 
         ax.bar(x_vals,y_vals)
+
+    ax.set_title('brussels '+'atlanta '+'denver '+'sahara '+'phoenix')
 
     plt.show()
 
