@@ -175,7 +175,8 @@ def plot_experimental_data(ordered_design_names, percent_saved_list,data_dict,po
         plt.rc('figure', titlesize=20)  # fontsize of the figure title
         
         bar_legend_name = ['red', 'blue', 'green', 'orange']
-        bar_colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:orange']
+        #bar_colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:orange']
+        bar_colors = ['#212121','#5a2d2b','#7d3331','#d94540']
 
         bars = ax2.bar(ordered_design_names, percent_saved_list, color=bar_colors, label=ordered_design_names)
 
