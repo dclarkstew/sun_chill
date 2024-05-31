@@ -177,52 +177,80 @@ def main():
                 power_sum_dict[key][i_heatsink] += heatsink_scaled_power_kwh
                 money_sum_dict[key][i_heatsink] += heatsink_scaled_power_kwh * price_per_kWh
 
-    # --- Rearrange dict ---
-    heatsink_type_location_dict = {key:{k:money_sum_dict[k][key] for k in money_sum_dict if key in money_sum_dict[k]} for key in ordered_design_names}
-
     # --- Difference from ambient dict ---
-    money_diff_dict = {}
+    money_diff_dict_location_deisgn = {}
     for key,i_location_data in money_sum_dict.items():
         ambient_generation = money_sum_dict[key]['ambient']
 
-        money_diff_dict[key] = {}
+        money_diff_dict_location_deisgn[key] = {}
         for key2,i_design_value in i_location_data.items():
-            money_diff_dict[key][key2] = round(i_design_value - ambient_generation,2)
+            money_diff_dict_location_deisgn[key][key2] = round(i_design_value - ambient_generation,2)
 
-    plot2_wtf(money_diff_dict)
+    # --- Rearrange diff dict ---
+    money_diff_dict_design_location = {key:{k:money_diff_dict_location_deisgn[k][key] for k in money_diff_dict_location_deisgn if key in money_diff_dict_location_deisgn[k]} for key in ordered_design_names}
+
+    plot2_wtf(money_diff_dict_design_location)
     gsd=0
 
-def plot2_wtf(money_sum_dict):
+def plot2_wtf(money_diff_dict):
 
-    # fig, ax = plt.subplots(1,5)
     fig, ax = plt.subplots()
 
-    plot_dict = {}
+    color_dict = {'1/8" flat plate': '#212121',
+                  '1/2" x 1/2" x 3" bars': '#5a2d2b',
+                  '1/4" Honeycomb Grid Core': '#7d3331',
+                  '1/8" x 3" fins':'#d94540'}
 
-    for key,i_location_data in money_sum_dict.items():
+    plot_dict = {}
+    x_pos = 0
+    for key,i_design_data in money_diff_dict.items():
 
         plot_dict[key] = {}
         plot_dict[key]['x_vals'] = []
         plot_dict[key]['y_vals'] = []
-        for key2,i_design_value in i_location_data.items():
+        for key2,i_location_value in i_design_data.items():
 
-            val_rounded = round(i_design_value,2)
+            val_rounded = round(i_location_value,2)
 
             if val_rounded == 0:
                 continue
 
-            plot_dict[key]['x_vals'].append(str(val_rounded))
-            plot_dict[key]['y_vals'].append( val_rounded )
+            ax.bar(x_pos,val_rounded,color=color_dict[i_design_data])
+            ax.text(x_pos,val_rounded+.2,val_rounded)
+
+            # --- Add devider between locations ---
+            # gnt.axvline(schedule_start_dt, color='#e9ecfe', linestyle='dashed',label = 'Stop/Start')
+
+            # plot_dict[key]['x_vals'].append(x_pos)
+            # plot_dict[key]['y_vals'].append(val_rounded)
+
+            x_pos += 1
 
     # --- Plot per location ---
-    for i_loc in ['brussels','atlanta','denver','sahara','phoenix']:
+    # for i_loc in ['brussels','atlanta','denver','sahara','phoenix']:
 
-        x_vals = plot_dict[i_loc]['x_vals']
-        y_vals = plot_dict[i_loc]['y_vals']
+    #     x_vals = plot_dict[i_loc]['x_vals']
+    #     y_vals = plot_dict[i_loc]['y_vals']
 
-        ax.bar(x_vals,y_vals)
+    #     ax.bar(x_vals,y_vals)
 
-    ax.set_title('brussels '+'atlanta '+'denver '+'sahara '+'phoenix')
+    # --- Title ---
+    ax.set_title('Dollars saved in a year by design by Location')
+    # ax.set_title('brussels '+'atlanta '+'denver '+'sahara '+'phoenix')
+
+    # --- X axis ---
+    ax.set_xticklabels([])
+    # ax.set_xlabel('')
+
+    # --- Y axis ---
+    ax.set_ylabel('Dollars Saved ($)')
+
+    # --- ---
+    ax.grid(True)
+
+    # --- Add Location text ---
+    for idx,i_loc in enumerate(['Brussels','Atlanta','Denver','Sahara','Phoenix']):
+        ax.text(idx,10,i_loc, fontsize=20)
 
     plt.show()
 
