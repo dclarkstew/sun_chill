@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import csv
 from datetime import datetime
 from scipy import integrate
+import matplotlib.patches as mpatches
+
 
 # Local imports
 import read_temp_data as read_temp_data # type: ignore
@@ -16,7 +18,7 @@ def main():
     NREL_files = ['denver_1947888_39.74_-105.03_2022_localTime.csv',
                 'phoenix_1309015_33.44_-112.05_2022_localTime.csv',
                 'atlanta_3894477_33.80_-84.39_2022_localTime.csv',
-                'sahara_487671_22.77_5.54_2019_localTime.csv',         # Tamanrasset
+                'sahara_487671_22.77_5.54_2019_localTime.csv',         # Tamanrasset, Algeria
                 'brussels_454991_50.85_4.34_2019_localTime.csv']
 
     # === Solar Panel Inputs ===
@@ -189,21 +191,32 @@ def main():
     # --- Rearrange diff dict ---
     money_diff_dict_design_location = {key:{k:money_diff_dict_location_deisgn[k][key] for k in money_diff_dict_location_deisgn if key in money_diff_dict_location_deisgn[k]} for key in ordered_design_names}
 
-    plot2_wtf(money_diff_dict_design_location)
+    plot2_wtf(money_diff_dict_location_deisgn)
     gsd=0
 
 def plot2_wtf(money_diff_dict):
 
     fig, ax = plt.subplots()
 
-    color_dict = {'1/8" flat plate': '#212121',
-                  '1/2" x 1/2" x 3" bars': '#5a2d2b',
-                  '1/4" Honeycomb Grid Core': '#7d3331',
-                  '1/8" x 3" fins':'#d94540'}
+    color_dict = {'ambient': '#bde6de',
+                  '1/8" flat plate': '#84cfb9',
+                  '1/2" x 1/2" x 3" bars': '#51b689',
+                  '1/4" Honeycomb\nGrid Core': '#2c9553',
+                  '1/8" x 3" fins':'#05712f'}
+    
+    loc_dict = {'brussels':'Brussels, Belgium',
+                'atlanta':'Atlanta, GA',
+                'denver':'Denver, CO',
+                'sahara':'Tamanrasset, Algeria\n(Sahara Desert)',
+                'phoenix': 'Phoenix, AZ'}
+    
+    location_order = ['brussels','atlanta','sahara','denver','phoenix']
 
     plot_dict = {}
     x_pos = 0
-    for key,i_design_data in money_diff_dict.items():
+    for loc_idx,key in enumerate(location_order):
+    
+        i_design_data = money_diff_dict[key]
 
         plot_dict[key] = {}
         plot_dict[key]['x_vals'] = []
@@ -215,38 +228,62 @@ def plot2_wtf(money_diff_dict):
             if val_rounded == 0:
                 continue
 
-            ax.bar(x_pos,val_rounded,color=color_dict[i_design_data])
-            ax.text(x_pos,val_rounded+.2,val_rounded)
+            # --- Bar plotting ---
+            ax.bar(x_pos,val_rounded ,color=color_dict[key2])
 
-            # --- Add devider between locations ---
-            # gnt.axvline(schedule_start_dt, color='#e9ecfe', linestyle='dashed',label = 'Stop/Start')
-
-            # plot_dict[key]['x_vals'].append(x_pos)
-            # plot_dict[key]['y_vals'].append(val_rounded)
+            # --- Text formatting ---
+            val_rounded_str = str(val_rounded)
+            split_decimal = str(val_rounded_str).split('.')
+            if len(split_decimal[1]) == 1:
+                val_rounded_str = val_rounded_str + '0'
+            display_text = '$' + val_rounded_str
+            ax.text(x_pos-.4,val_rounded+.05,display_text, fontweight='bold',ha='left')
 
             x_pos += 1
 
-    # --- Plot per location ---
-    # for i_loc in ['brussels','atlanta','denver','sahara','phoenix']:
+        # --- Add location separations ---
+        if x_pos != 24:
+            ax.axvline(x_pos, color='black', linestyle='dashed',label = 'Stop/Start')
+        ax.text(x_pos-2.5,5.3,loc_dict[key].upper(),fontsize = 'x-large',fontweight='bold',ha='center',va='center')
 
-    #     x_vals = plot_dict[i_loc]['x_vals']
-    #     y_vals = plot_dict[i_loc]['y_vals']
 
-    #     ax.bar(x_vals,y_vals)
+        ax.bar(x_pos,0)
+        x_pos += 1
 
     # --- Title ---
-    ax.set_title('Dollars saved in a year by design by Location')
-    # ax.set_title('brussels '+'atlanta '+'denver '+'sahara '+'phoenix')
+    ax.set_title('Calculated Savings from Heat Sinks in a Year',fontsize=28,fontweight='bold')
+
+    # --- All other stuff ---
+    ax.grid(True)
+    ax.set_axisbelow(True)
 
     # --- X axis ---
     ax.set_xticklabels([])
+    ax.set_xlim([-1, x_pos-1])
+    ax.grid(which='major',visible=False,axis='x')
     # ax.set_xlabel('')
 
     # --- Y axis ---
-    ax.set_ylabel('Dollars Saved ($)')
+    ax.set_ylabel('Dollars Saved ($)',fontweight='bold',fontsize=20)
+    ax.set_ylim([0, 5.75])
+    ax.set_yticks([0,1,2,3,4,5],labels=['$0.00','$1.00','$2.00','$3.00','$4.00','$5.00'])
 
-    # --- ---
-    ax.grid(True)
+    # --- Legend --- 
+    leg = ax.get_legend()
+    legend_properties = {'weight':'bold'}
+
+    
+    ghetto_list = []
+    for key,value in color_dict.items():
+
+        if key == 'ambient':
+            continue
+
+        loc_patch = mpatches.Patch(color=value, label=key)
+        ghetto_list.append(loc_patch)
+    plt.legend(handles=ghetto_list, loc=(.01,.55),
+               fancybox=True, shadow=True,
+               prop=legend_properties)
 
     # --- Add Location text ---
     for idx,i_loc in enumerate(['Brussels','Atlanta','Denver','Sahara','Phoenix']):
