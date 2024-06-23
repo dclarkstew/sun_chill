@@ -139,9 +139,9 @@ def read_data_to_dict(filename):
 
     # --- Time (seconds) ---
     # num_data_points = len(date)
-    t0_dt = temp_data_dict['dt'][0]
-    for i_time in temp_data_dict['dt']:
-        sec_from_start = (i_time - t0_dt).seconds
+    t0_dt = temp_over_time_dict['time'][0]
+    for i_time in temp_over_time_dict['time']:
+        sec_from_start = (i_time - t0_dt).total_seconds()
         temp_over_time_dict['seconds'].append(sec_from_start)
 
     return temp_over_time_dict
@@ -469,7 +469,7 @@ def money_saved(ambient_data,compare_data,seconds_data):
             frame_max_power = SP_power_rating
         variable_max_possible_power.append(frame_max_power)
 
-    control_power_inte = integrate.trapezoid(control_max_possible_power[0:2],x=seconds_data[0:2])
+    control_power_inte = integrate.trapezoid(control_max_possible_power,x=seconds_data)
     variable_power_inte = integrate.trapezoid(variable_max_possible_power,x=seconds_data)
 
     control_temp_inte = integrate.trapezoid(ambient_data,seconds_data) / seconds_data[-1]
