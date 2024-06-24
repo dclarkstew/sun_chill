@@ -13,7 +13,8 @@ import read_temp_data as read_temp_data # type: ignore
 # from heat_sink_design import heat_sink_design
 
 # --- NREL historical data ---
-nrel_directory = r'C:\Users\dclar\Documents\Solar Panels\python_analysis\theoretical\\'
+# nrel_directory = r'C:\Users\dclar\Documents\Solar Panels\python_analysis\theoretical\\'
+nrel_directory = r'C:\Users\dclar\Documents\Solar Panels\Helios\nrel_data\\'
 NREL_files = ['denver_1947888_39.74_-105.03_2022_localTime.csv',
             'phoenix_1309015_33.44_-112.05_2022_localTime.csv',
             'atlanta_3894477_33.80_-84.39_2022_localTime.csv',
@@ -47,7 +48,7 @@ def main():
     # --- Local module calls ---
     # filename = 'test_20240414_cleanedup.txt'
     filename = r'c:\Users\dclar\Documents\Solar Panels\Helios\test_data\2024-06-16 to 2024-06-18 TC.xlsx'
-    ordered_design_names, percent_saved_list = read_temp_data.read_temp_data(filename)
+    percent_saved_list = read_temp_data.main(filename)
 
     # === Heatsink costs ===
     heatsink_build_costs = {
@@ -57,82 +58,47 @@ def main():
         '1/8" x 3" fins' : 4119.17
     }
 
+    # --- Read in NREL data ---
     nrel_dict = read_nrel_data()
-            
-    # === Sum data for power loss from temperature ===
-    power_sum_dict = {}
-    money_sum_dict = {}
 
-    # --- Loop through each location ---
-    for i_location_data in nrel_dict:
+    # --- Sum over the whole year ---
+    for i_percent_saved_dict in percent_saved_list:
+        power_sum_dict, money_sum_dict = sum_changes_yearly(nrel_dict,i_percent_saved_dict)
 
-        key = i_location_data['name']
+        # --- Difference from ambient dict ---
+        money_diff_dict_location_deisgn = {}
+        for key,i_location_data in money_sum_dict.items():
+            ambient_generation = money_sum_dict[key]['ambient']
+
+            money_diff_dict_location_deisgn[key] = {}
+            for key2,i_design_value in i_location_data.items():
+                money_diff_dict_location_deisgn[key][key2] = round(i_design_value - ambient_generation,2)
+
+        # --- Rearrange diff dict ---
+        # money_diff_dict_design_location = {key:{k:money_diff_dict_location_deisgn[k][key] for k in money_diff_dict_location_deisgn if key in money_diff_dict_location_deisgn[k]} for key in ordered_design_names}
+
+        plot_savings_by_location(money_diff_dict_location_deisgn)
+
+        # === Revenue over time ===
+        number_of_panels = 20000
+        chosen_location = 'phoenix'
+        chosen_design = '1/8" x 3" fins'
+        increase_per_panel_exp = money_sum_dict[chosen_location][chosen_design]
+        increase_per_panel_baseline = money_sum_dict[chosen_location]['ambient']
+        increase_per_panel_optimal = increase_per_panel_baseline * 1.1075
         
-        # --- Initialize sums ---
-        power_sum_dict[key] = {}
-        money_sum_dict[key] = {}
-        power_sum_dict[key]['ambient'] = 0
-        money_sum_dict[key]['ambient'] = 0
-        for i_heatsink in ordered_design_names:
-            power_sum_dict[key][i_heatsink] = 0
-            money_sum_dict[key][i_heatsink] = 0 
-        
-        # --- Loop through each day at each location ---
-        for i_day in i_location_data['data_days']:
+        lifetime_revenue_baseline = [0]
+        lifetime_revenue_experimental = [0]
+        lifetime_revenue_optimal = [0]
+        x_axis = [0]
+        for i_year in range(1,31):
+            lifetime_revenue_baseline.append(increase_per_panel_baseline*i_year*number_of_panels)
+            lifetime_revenue_experimental.append(increase_per_panel_exp*i_year*number_of_panels)
+            lifetime_revenue_optimal.append(increase_per_panel_optimal*i_year*number_of_panels)
+            x_axis.append(i_year)
 
-            if i_day['time'] == []:
-                continue
-
-            start_time = i_day['time'][0]
-
-            sec_from_start = [(val - start_time).seconds for val in i_day['time']]
-
-            # --- Integrate power over day and sum money earned for ambient temperatures ---
-            integrated_kwh = integrate.trapezoid(i_day['power_heated'],x=sec_from_start) /1000/3600
-            power_sum_dict[key]['ambient'] += integrated_kwh
-            money_sum_dict[key]['ambient'] += integrated_kwh * price_per_kWh
-
-            # --- Do the same but included heat sinks ---
-            for idx,i_heatsink in enumerate(ordered_design_names):
-                heatsink_scaled_power_kwh = integrated_kwh * (1+percent_saved_list[idx]/100)
-
-                power_sum_dict[key][i_heatsink] += heatsink_scaled_power_kwh
-                money_sum_dict[key][i_heatsink] += heatsink_scaled_power_kwh * price_per_kWh
-
-    # --- Difference from ambient dict ---
-    money_diff_dict_location_deisgn = {}
-    for key,i_location_data in money_sum_dict.items():
-        ambient_generation = money_sum_dict[key]['ambient']
-
-        money_diff_dict_location_deisgn[key] = {}
-        for key2,i_design_value in i_location_data.items():
-            money_diff_dict_location_deisgn[key][key2] = round(i_design_value - ambient_generation,2)
-
-    # --- Rearrange diff dict ---
-    money_diff_dict_design_location = {key:{k:money_diff_dict_location_deisgn[k][key] for k in money_diff_dict_location_deisgn if key in money_diff_dict_location_deisgn[k]} for key in ordered_design_names}
-
-    # plot_savings_by_location(money_diff_dict_location_deisgn)
-
-    # === Revenue over time ===
-    number_of_panels = 20000
-    chosen_location = 'phoenix'
-    chosen_design = '1/8" x 3" fins'
-    increase_per_panel_exp = money_sum_dict[chosen_location][chosen_design]
-    increase_per_panel_baseline = money_sum_dict[chosen_location]['ambient']
-    increase_per_panel_optimal = increase_per_panel_baseline * 1.1075
-    
-    lifetime_revenue_baseline = [0]
-    lifetime_revenue_experimental = [0]
-    lifetime_revenue_optimal = [0]
-    x_axis = [0]
-    for i_year in range(1,31):
-        lifetime_revenue_baseline.append(increase_per_panel_baseline*i_year*number_of_panels)
-        lifetime_revenue_experimental.append(increase_per_panel_exp*i_year*number_of_panels)
-        lifetime_revenue_optimal.append(increase_per_panel_optimal*i_year*number_of_panels)
-        x_axis.append(i_year)
-
-    farm_power_output = SP_power_rating * number_of_panels
-    plot_revenue_over_time(lifetime_revenue_baseline,lifetime_revenue_experimental,lifetime_revenue_optimal,x_axis,SP_power_rating, number_of_panels)
+        farm_power_output = SP_power_rating * number_of_panels
+        plot_revenue_over_time(lifetime_revenue_baseline,lifetime_revenue_experimental,lifetime_revenue_optimal,x_axis,SP_power_rating, number_of_panels)
 
 
 def read_nrel_data():
@@ -223,11 +189,56 @@ def read_nrel_data():
     return nrel_dict
 
 
+def sum_changes_yearly(nrel_dict,percent_saved_dict):
+    # === Sum data for power loss from temperature ===
+    power_sum_dict = {}
+    money_sum_dict = {}
+
+    # --- Loop through each location ---
+    for i_location_data in nrel_dict:
+
+        key = i_location_data['name']
+        
+        # --- Initialize sums ---
+        power_sum_dict[key] = {}
+        money_sum_dict[key] = {}
+        power_sum_dict[key]['ambient'] = 0
+        money_sum_dict[key]['ambient'] = 0
+        for i_heatsink,saved_amount in percent_saved_dict.items():
+            power_sum_dict[key][i_heatsink] = 0
+            money_sum_dict[key][i_heatsink] = 0 
+        
+        # --- Loop through each day at each location ---
+        for i_day in i_location_data['data_days']:
+
+            if i_day['time'] == []:
+                continue
+
+            start_time = i_day['time'][0]
+
+            sec_from_start = [(val - start_time).seconds for val in i_day['time']]
+
+            # --- Integrate power over day and sum money earned for ambient temperatures ---
+            integrated_kwh = integrate.trapezoid(i_day['power_heated'],x=sec_from_start) /1000/3600
+            power_sum_dict[key]['ambient'] += integrated_kwh
+            money_sum_dict[key]['ambient'] += integrated_kwh * price_per_kWh
+
+            # --- Do the same but included heat sinks ---
+            for i_heatsink,saved_amount in percent_saved_dict.items():
+                heatsink_scaled_power_kwh = integrated_kwh * (1+percent_saved_dict[i_heatsink]/100)
+
+                power_sum_dict[key][i_heatsink] += heatsink_scaled_power_kwh
+                money_sum_dict[key][i_heatsink] += heatsink_scaled_power_kwh * price_per_kWh
+        
+    return power_sum_dict, money_sum_dict
+
+
+# === Plot ===
 def plot_savings_by_location(money_diff_dict):
 
     fig, ax = plt.subplots()
 
-    color_dict = {'ambient': '#bde6de',
+    color_dict = {'control_outside': '#bde6de',
                   '1/8" flat plate': '#84cfb9',
                   '1/2" x 1/2" x 3" bars': '#51b689',
                   '1/4" Honeycomb\nGrid Core': '#2c9553',
@@ -254,7 +265,7 @@ def plot_savings_by_location(money_diff_dict):
 
             val_rounded = round(i_location_value,2)
 
-            if val_rounded == 0:
+            if val_rounded == 0 or key2 == 'control_inside':
                 continue
 
             # --- Bar plotting ---
@@ -320,10 +331,9 @@ def plot_savings_by_location(money_diff_dict):
 
     plt.show()
 
-    d=0    
+    d=0
 
 
-# === Plot ===
 def plot_revenue_over_time(revenue_baseline,revenue_exp,revenue_optimal,x_axis,SP_power_rating, number_of_panels):
 
     fig, ax = plt.subplots()
@@ -407,21 +417,6 @@ def plot_revenue_over_time(revenue_baseline,revenue_exp,revenue_optimal,x_axis,S
     ax.set_ylabel('USD ($)',fontweight='bold',fontsize=24)
     ax.set_ylim(0,7.7e7)
     ax.set_yticks([1e7,2e7,3e7,4e7,5e7,6e7,7e7,8e7],labels=['$10M','$20M','$30M','$40M','$50M','$60M','$70M','$80M'],weight='normal',fontsize=18)
-
-    # Make the zoom-in plot:
-    # from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes 
-    # from mpl_toolkits.axes_grid1.inset_locator import mark_inset
-
-    # axins = zoomed_inset_axes(ax, 2, loc=5) # zoom = 2
-    # axins.plot(x_axis,revenue_baseline,color=color1)
-    # axins.plot(x_axis,revenue_exp,color=color2)
-    # axins.plot(x_axis,revenue_optimal,color=color3)
-    # axins.set_xlim(27, 30)
-    # axins.set_ylim(6e7, 7.2e7)
-    # plt.xticks(visible=False)
-    # plt.yticks(visible=False)
-    # mark_inset(ax, axins, loc1=1, loc2=2, fc="none", ec="0.5")
-    # plt.draw()
 
     plt.show()
     g=0
